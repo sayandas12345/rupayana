@@ -1,5 +1,13 @@
 // ---------- VERY SIMPLE, SAFE frontend/app.js ----------
-const API = "https://<rypayana>.onrender.com/api";
+// prefer global window.API (settable from index.html), fallback to your render backend
+const API = (typeof window !== 'undefined' && window.API) ? window.API : "https://rupayana.onrender.com";
+
+
+// Example fetch usage (adapt to your existing code):
+// fetch(API + '/api/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({email, password}) })
+// .then(r => r.json()).then(...).catch(e => console.error('Network or fetch error', e));
+
+
 
 // helper to get element safely
 function el(id){ return document.getElementById(id) || null; }

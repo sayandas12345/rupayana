@@ -204,6 +204,9 @@
     function showDashboard(user){ if(!user){ document.getElementById('auth').style.display='block'; document.getElementById('dashboard').style.display='none'; return; } document.getElementById('auth').style.display='none'; document.getElementById('dashboard').style.display='grid'; document.getElementById('user-name').innerText = user.name || user.email || 'User'; document.getElementById('acct-email').innerText = user.email || ''; document.getElementById('balance').innerText = user.balance || '0'; }
     (function(){ const btnLogin = document.getElementById('btn-login'); if(btnLogin){ btnLogin.addEventListener('click', function(){ const email = document.getElementById('login-email').value || 'user@example.com'; const name = (email.split('@')[0] || 'User'); const user = { name: name.charAt(0).toUpperCase()+name.slice(1), email: email, phone:'', balance: '12450' }; sessionStorage.setItem('user', JSON.stringify(user)); showDashboard(user); }); } const btnReg = document.getElementById('btn-register'); if(btnReg){ btnReg.addEventListener('click', function(){ const name = document.getElementById('reg-name').value || 'New'; const email = document.getElementById('reg-email').value || 'new@ex.com'; const user = { name, email, phone: document.getElementById('reg-phone').value || '' }; sessionStorage.setItem('user', JSON.stringify(user)); document.getElementById('reg-msg').innerText='Registered — login now'; }); } const u = getUser(); if(u) showDashboard(u); })();
   </script>
+   <!-- Put this before your app.js script tag -->
+<script>window.API = "https://rupayana.onrender.com";</script>
+
 
   <!-- load your real app.js if present -->
   <script src="app.js"></script>
