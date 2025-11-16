@@ -1,131 +1,207 @@
-// server.js (complete file) - replace your existing server.js with this
+// server.js (REPLACE your file with this)
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const crypto = require('crypto');
-// const nodemailer = require('nodemailer'); // uncomment if you configure SMTP
 
 const app = express();
 
-// Middlewares
+// middlewares
 app.use(bodyParser.json());
-app.use(cors()); // <-- allow all origins for now (ok for testing). Replace with specific origin in production.
-// Health check
-app.get('/', (req, res) => res.send('OK'));
+app.use(cors()); // allow all origins for now (change to specific origin in production)
 
-// Database setup (sqlite file located in project root)
-const DB_FILE = process.env.DB_FILE || path.join(__dirname, 'database.sqlite');
-const db = new sqlite3.Database(DB_FILE, (err) => {
-  if (err) {
-    console.error('Failed to open database:', err);
-  } else {
-    console.log('Connected to SQLite DB:', DB_FILE);
-  }
+// simple request logger
+app.use((req, res, next) => {
+  console.log(new Date().toISOString(), req.method, req.url);
+  next();
 });
 
-// Minimal init: create users table if not exists (adjust columns as needed)
+// health check
+app.get('/', (req, res) => res.send('OK'));
+
+// DB
+const DB_FILE = process.env.DB_FILE || path.join(__dirname, 'database.sqlite');
+const db = new sqlite3.Database(DB_FILE, (err) => {
+  if (err) console.error('Failed to open DB:', err);
+  else console.log('SQLite DB opened:', DB_FILE);
+});
+
+// Create required tables if not present
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
     email TEXT UNIQUE,
     password TEXT,
+    phone TEXT,
     isAdmin INTEGER DEFAULT 0,
     resetToken TEXT,
     resetExpires INTEGER
-  );`, (err) => {
-    if (err) console.error('Error creating users table:', err);
-  });
+  );`, (e) => { if (e) console.error('users table error:', e); });
+
+  db.run(`CREATE TABLE IF NOT EXISTS transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    from_email TEXT,
+    to_email TEXT,
+    amount REAL,
+    type TEXT,
+    details TEXT,
+    created_at INTEGER DEFAULT (strftime('%s','now'))
+  );`, (e) => { if (e) console.error('transactions table error:', e); });
 });
 
-// Helper: generate token
-function genToken() {
-  return crypto.randomBytes(24).toString('hex');
-}
+// helper
+function genToken(){ return crypto.randomBytes(24).toString('hex'); }
+function safeJSON(res, status, obj){ res.status(status).json(obj); }
 
-// Example routes (adapt to your original logic as needed)
+// ROUTES (all return JSON)
 
-// Register (simple example — in production hash passwords)
-app.post('/api/register', (req, res) => {
-  const { name, email, password } = req.body || {};
-  if (!email || !password) return res.status(400).json({ error: 'Missing email or password' });
-
-  const stmt = db.prepare('INSERT INTO users (name, email, password) VALUES (?, ?, ?)');
-  stmt.run(name || '', email, password, function (err) {
-    if (err) {
-      if (err.code === 'SQLITE_CONSTRAINT') return res.status(409).json({ error: 'Email already exists' });
-      console.error('Register error:', err);
-      return res.status(500).json({ error: 'DB error' });
-    }
-    return res.json({ id: this.lastID, name, email });
-  });
-  stmt.finalize();
-});
-
-// Login (simple example — in production compare hashed password)
-app.post('/api/login', (req, res) => {
-  const { email, password } = req.body || {};
-  if (!email || !password) return res.status(400).json({ error: 'Missing email or password' });
-
-  db.get('SELECT id, name, email, password FROM users WHERE email = ?', [email], (err, row) => {
-    if (err) {
-      console.error('Login DB error:', err); return res.status(500).json({ error: 'DB error' });
-    }
-    if (!row || row.password !== password) return res.status(401).json({ error: 'Invalid credentials' });
-    // In production return JWT or session id
-    return res.json({ id: row.id, name: row.name, email: row.email });
-  });
-});
-
-// Password reset request: generates token and returns reset link (or sends email if SMTP configured)
-app.post('/api/request-reset', (req, res) => {
-  const { email } = req.body || {};
-  if (!email) return res.status(400).json({ error: 'Missing email' });
-
-  db.get('SELECT id FROM users WHERE email = ?', [email], (err, user) => {
-    if (err) { console.error(err); return res.status(500).json({ error: 'DB error' }); }
-    if (!user) return res.status(404).json({ error: 'No user with that email' });
-
-    const token = genToken();
-    const expires = Date.now() + 1000 * 60 * 60; // 1 hour
-    db.run('UPDATE users SET resetToken = ?, resetExpires = ? WHERE email = ?', [token, expires, email], (uErr) => {
-      if (uErr) { console.error(uErr); return res.status(500).json({ error: 'DB error' }); }
-
-      // FRONTEND_BASE should be set on Render env (e.g., https://your-frontend.vercel.app)
-      const FRONTEND_BASE = process.env.FRONTEND_BASE || 'https://your-frontend.vercel.app';
-      // Note: reset.html is at root of frontend in the recommended layout (not /frontend/reset.html)
-      const resetLink = `${FRONTEND_BASE}/reset.html?token=${token}&email=${encodeURIComponent(email)}`;
-
-      // If you have SMTP configured, send email here. For now return the link in the response for testing:
-      // sendEmail(email, 'Reset link', `Click here: ${resetLink}`)
-
-      return res.json({ message: 'Reset token created', resetLink });
+// --- AUTH: register /api/register
+app.post(['/api/register','/register'], (req, res) => {
+  try {
+    const { name, email, password, phone } = req.body || {};
+    if (!email || !password) return safeJSON(res, 400, { error: 'Missing email or password' });
+    const stmt = db.prepare('INSERT INTO users (name,email,password,phone) VALUES (?,?,?,?)');
+    stmt.run(name || '', email, password, phone || '', function(err){
+      if (err){
+        if (err.code === 'SQLITE_CONSTRAINT') return safeJSON(res, 409, { error: 'Email already exists' });
+        console.error('register err', err); return safeJSON(res, 500, { error: 'DB error' });
+      }
+      return safeJSON(res, 200, { user: { id: this.lastID, name, email, phone } });
     });
-  });
+    stmt.finalize();
+  } catch(err){ console.error(err); safeJSON(res,500,{error:'Server error'}); }
 });
 
-// Password reset confirm (example)
-app.post('/api/reset-password', (req, res) => {
-  const { email, token, newPassword } = req.body || {};
-  if (!email || !token || !newPassword) return res.status(400).json({ error: 'Missing fields' });
-
-  db.get('SELECT resetToken, resetExpires FROM users WHERE email = ?', [email], (err, row) => {
-    if (err) { console.error(err); return res.status(500).json({ error: 'DB error' }); }
-    if (!row) return res.status(404).json({ error: 'User not found' });
-    if (row.resetToken !== token || Date.now() > row.resetExpires) return res.status(400).json({ error: 'Invalid or expired token' });
-
-    db.run('UPDATE users SET password = ?, resetToken = NULL, resetExpires = NULL WHERE email = ?', [newPassword, email], (uerr) => {
-      if (uerr) { console.error(uerr); return res.status(500).json({ error: 'DB error' }); }
-      return res.json({ message: 'Password updated' });
+// --- LOGIN: /api/login
+app.post(['/api/login','/login'], (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) return safeJSON(res, 400, { error: 'Missing email or password' });
+    db.get('SELECT id,name,email,password,phone,isAdmin FROM users WHERE email = ?', [email], (err,row) => {
+      if (err){ console.error('login db err', err); return safeJSON(res,500,{error:'DB error'}); }
+      if (!row || row.password !== password) return safeJSON(res,401,{ error:'Invalid credentials' });
+      const user = { id: row.id, name: row.name, email: row.email, phone: row.phone, isAdmin: row.isAdmin };
+      return safeJSON(res,200,{ user });
     });
-  });
+  } catch(err){ console.error(err); safeJSON(res,500,{error:'Server error'}); }
 });
 
-// Add any other routes you had here (keep original logic)
+// --- UPDATE PROFILE
+app.post(['/api/update-profile','/update-profile'], (req,res) => {
+  try {
+    const { email, name, phone } = req.body || {};
+    if (!email) return safeJSON(res,400,{error:'Missing email'});
+    db.run('UPDATE users SET name=?, phone=? WHERE email=?', [name||'', phone||'', email], function(err){
+      if (err){ console.error('update-profile err', err); return safeJSON(res,500,{error:'DB error'}); }
+      db.get('SELECT id,name,email,phone FROM users WHERE email=?', [email], (e,row) => {
+        if (e){ console.error(e); return safeJSON(res,500,{error:'DB error'}); }
+        return safeJSON(res,200,{ user: row, message:'Profile updated' });
+      });
+    });
+  } catch(err){ console.error(err); safeJSON(res,500,{error:'Server error'}); }
+});
 
-// Start server
+// --- CREATE TRANSACTION (transfer)
+app.post(['/api/transfer','/transfer','/api/transaction','/transaction'], (req,res) => {
+  try {
+    const { fromEmail, toEmail, amount, mode, type, details } = req.body || {};
+    const from = fromEmail || req.body.from;
+    const to = toEmail || req.body.to;
+    const amt = (amount!==undefined) ? amount : req.body.amount;
+    if (!from || !to || !amt) return safeJSON(res,400,{error:'Missing fields'});
+    const ttype = type || (mode ? mode : 'transfer');
+    const stmt = db.prepare('INSERT INTO transactions (from_email,to_email,amount,type,details) VALUES (?,?,?,?,?)');
+    stmt.run(from, to, amt, ttype, details || '', function(err){
+      if (err){ console.error('insert tx err', err); return safeJSON(res,500,{error:'DB error'}); }
+      return safeJSON(res,200,{ id: this.lastID, from, to, amount: amt, type: ttype });
+    });
+    stmt.finalize();
+  } catch(err){ console.error(err); safeJSON(res,500,{error:'Server error'}); }
+});
+
+// --- BILL PAY (thin wrapper)
+app.post(['/api/billpay','/billpay'], (req,res) => {
+  try {
+    const { email, biller, amount } = req.body || {};
+    if (!email || !biller || !amount) return safeJSON(res,400,{error:'Missing fields'});
+    const stmt = db.prepare('INSERT INTO transactions (from_email,to_email,amount,type,details) VALUES (?,?,?,?,?)');
+    stmt.run(email, biller, amount, 'bill', `biller:${biller}`, function(err){
+      if (err){ console.error('billpay insert err', err); return safeJSON(res,500,{error:'DB error'}); }
+      return safeJSON(res,200,{ id: this.lastID, message:'Bill paid' });
+    });
+    stmt.finalize();
+  } catch(err){ console.error(err); safeJSON(res,500,{error:'Server error'}); }
+});
+
+// --- GET transactions for an email
+app.get(['/api/transactions','/transactions'], (req,res) => {
+  try {
+    const email = req.query.email;
+    if (!email) return safeJSON(res,400,{ error:'Missing email query param' });
+    db.all('SELECT id,from_email,to_email,amount,type,details,created_at FROM transactions WHERE from_email = ? OR to_email = ? ORDER BY created_at DESC', [email,email], (err, rows) => {
+      if (err){ console.error('select tx err', err); return safeJSON(res,500,{error:'DB error'}); }
+      return safeJSON(res,200, { transactions: rows || [] });
+    });
+  } catch(err){ console.error(err); safeJSON(res,500,{error:'Server error'}); }
+});
+
+// --- ADMIN: list users (simple)
+app.get(['/api/admin/users','/admin/users'], (req,res) => {
+  try {
+    db.all('SELECT id,name,email,phone,isAdmin FROM users ORDER BY id DESC', [], (err, rows) => {
+      if (err){ console.error('admin users err', err); return safeJSON(res,500,{error:'DB error'}); }
+      return safeJSON(res,200, { users: rows || [] });
+    });
+  } catch(err){ console.error(err); safeJSON(res,500,{error:'Server error'}); }
+});
+
+// Password reset endpoints kept as before (API prefix)
+app.post(['/api/request-reset','/request-reset'], (req,res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email) return safeJSON(res,400,{error:'Missing'});
+    db.get('SELECT id FROM users WHERE email = ?', [email], (err,user) => {
+      if (err){ console.error(err); return safeJSON(res,500,{error:'DB error'}); }
+      if (!user) return safeJSON(res,404,{error:'No user with that email'});
+      const token = genToken();
+      const expires = Date.now() + 1000*60*60;
+      db.run('UPDATE users SET resetToken=?, resetExpires=? WHERE email=?', [token,expires,email], (uErr) => {
+        if (uErr){ console.error(uErr); return safeJSON(res,500,{error:'DB error'}); }
+        const FRONTEND_BASE = process.env.FRONTEND_BASE || 'https://your-frontend.vercel.app';
+        const resetLink = `${FRONTEND_BASE}/reset.html?token=${token}&email=${encodeURIComponent(email)}`;
+        return safeJSON(res,200, { message:'Reset link created', resetLink });
+      });
+    });
+  } catch(err){ console.error(err); safeJSON(res,500,{error:'Server error'}); }
+});
+
+app.post(['/api/reset-password','/reset-password'], (req,res) => {
+  try {
+    const { email, token, newPassword } = req.body || {};
+    if (!email || !token || !newPassword) return safeJSON(res,400,{error:'Missing'});
+    db.get('SELECT resetToken,resetExpires FROM users WHERE email=?', [email], (err,row) => {
+      if (err){ console.error(err); return safeJSON(res,500,{error:'DB error'}); }
+      if (!row) return safeJSON(res,404,{error:'User not found'});
+      if (row.resetToken !== token || Date.now() > row.resetExpires) return safeJSON(res,400,{error:'Invalid or expired token'});
+      db.run('UPDATE users SET password=?, resetToken=NULL, resetExpires=NULL WHERE email=?', [newPassword,email], (uerr) => {
+        if (uerr){ console.error(uerr); return safeJSON(res,500,{error:'DB error'}); }
+        return safeJSON(res,200,{ message:'Password updated' });
+      });
+    });
+  } catch(err){ console.error(err); safeJSON(res,500,{error:'Server error'}); }
+});
+
+// global error handler (fallback)
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err && (err.stack || err));
+  if (!res.headersSent) res.status(500).json({ error: 'Internal server error' });
+});
+
+// start server
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
