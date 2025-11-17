@@ -49,6 +49,7 @@ const db = new sqlite3.Database(DB_FILE, (err) => {
   if (err) console.error('Failed to open DB:', err);
   else console.log('SQLite DB opened:', DB_FILE);
 });
+console.log(">>> USING DATABASE FILE:", DB_FILE);
 
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS users (
