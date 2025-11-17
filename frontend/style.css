@@ -1,4 +1,4 @@
-/* style.css - enhanced UI: animations, spinner, sidebar collapse, micro-interactions */
+/* style.css - enhanced UI: sidebar fixed + push-content behavior, animations, spinner, micro-interactions */
 :root{
   --bg:#071028;
   --card:#0b1220;
@@ -8,13 +8,31 @@
   --glass: rgba(255,255,255,0.02);
   --radius:12px;
 }
+
+/* global basic */
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,var(--bg),#041124);color:#e6eef8;-webkit-font-smoothing:antialiased}
-.app-wrap{display:flex;gap:18px;min-height:100vh;padding:18px}
+.app-wrap{position:relative;min-height:100vh;background:linear-gradient(180deg,var(--bg),#041124);}
 
-/* sidebar */
-.sidebar{width:260px;padding:18px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));box-shadow:0 12px 40px rgba(2,6,23,0.6);border-radius:14px;position:relative;transition:width .28s ease,transform .28s ease}
-.sidebar.collapsed{width:72px}
+/* ===== Sidebar (fixed) ===== */
+.sidebar{
+  position: fixed;
+  left: 18px;
+  top: 18px;
+  bottom: 18px;
+  width: 260px;
+  padding: 18px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  box-shadow: 0 12px 40px rgba(2,6,23,0.6);
+  border-radius: 14px;
+  transition: width .28s ease, transform .28s ease;
+  z-index: 80;
+  overflow: hidden;
+}
+.sidebar.collapsed{
+  width: 72px;
+}
+
 .sidebar-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .brand{display:flex;align-items:center;gap:10px}
 .logo{width:48px;height:48;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:800;color:#021}
@@ -35,8 +53,20 @@ html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:line
 /* promo mini-card */
 .promo-card{margin-top:12px;padding:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:10px}
 
-/* main layout */
-.main{flex:1;padding:6px 10px}
+/* ===== Main content (pushed by sidebar) ===== */
+/* default: sidebar expanded (260px) => push main by 260px + 36px gap */
+.main{
+  margin-left: calc(260px + 36px);
+  padding: 6px 10px;
+  transition: margin-left .28s ease;
+}
+
+/* when body has sb-collapsed, use collapsed sidebar width (72px) */
+.sb-collapsed .main{
+  margin-left: calc(72px + 36px);
+}
+
+/* topbar and elements */
 .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .search{padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:var(--muted);width:420px}
 .top-actions{display:flex;align-items:center;gap:10px}
@@ -93,12 +123,20 @@ html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:line
 /* footer */
 .footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
 
-/* responsive */
+/* responsive behavior */
 @media (max-width:960px){
-  .app-wrap{flex-direction:column;padding:12px}
-  .sidebar{width:100%;display:flex;order:2}
+  .app-wrap{padding:12px}
+  .sidebar{
+    position: relative;
+    left: 0; top: 0; bottom: auto;
+    width: 100%;
+    margin-bottom: 12px;
+    border-radius: 12px;
+  }
+  .sidebar.collapsed{ width: 100%; }
+  .main{ margin-left: 0; padding: 12px; }
+  .sb-collapsed .main { margin-left: 0; }
   .grid{grid-template-columns:1fr}
   .search{width:100%}
-  .sidebar.collapsed{width:100%}
 }
 

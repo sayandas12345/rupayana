@@ -1,12 +1,12 @@
-// FRONTEND APP.JS — updated with avatar generator & extra content
-
+// FRONTEND APP.JS — updated full file
+// API base — preserved and explicit
 const API = (typeof window !== 'undefined' && window.API)
   ? window.API
   : "https://rupayana.onrender.com";
 
 console.log("[app] Using API base:", API);
 
-// ---------- helpers ----------
+// ---------- Helpers ----------
 function el(id){ return document.getElementById(id) || null; }
 function showSpinner(show){ const s = el('global-spinner'); if (!s) return; if (show) s.classList.add('active'); else s.classList.remove('active'); }
 function saveUser(user){ try { sessionStorage.setItem("user", JSON.stringify(user)); localStorage.setItem("rupayana_user", JSON.stringify(user)); } catch(e){ console.warn("saveUser", e); } }
@@ -16,7 +16,6 @@ function restoreUser(){ if(!sessionStorage.getItem("user") && localStorage.getIt
 // ---------- avatar SVG generator (data URI) ----------
 function svgAvatarDataUri(name = "R", size = 128) {
   const initial = (name && String(name).trim().charAt(0).toUpperCase()) || "R";
-  // choose a background gradient based on char code
   const code = initial.charCodeAt(0);
   const a1 = ['#6e8cff','#7ed3ff','#ffd36e','#ff9f6e','#b388ff'][code % 5];
   const a2 = ['#7ed3ff','#6e8cff','#ff9f6e','#b388ff','#ffd36e'][(code+2) % 5];
@@ -41,16 +40,10 @@ function loadProfilePic() {
   const user = getUser();
   const name = user ? (user.name || user.email || 'R') : 'R';
   const fallback = svgAvatarDataUri(name, 128);
-
-  const sel = ['profile-pic-display','sidebar-avatar','user-avatar'];
-  sel.forEach(id => {
-    const img = el(id);
-    if (!img) return;
-    if (stored) img.src = stored;
-    else img.src = fallback;
+  ['profile-pic-display','sidebar-avatar','user-avatar'].forEach(id => {
+    const i = el(id); if (!i) return; i.src = stored || fallback;
   });
 }
-
 function handleProfilePicFile(file){
   if (!file) return;
   const reader = new FileReader();
@@ -72,7 +65,7 @@ async function safeFetch(url, opts = {}) {
   showSpinner(true);
   try {
     const res = await fetch(full, final);
-    const txt = await res.text().catch(()=>'');
+    const txt = await res.text().catch(()=> '');
     let json = null;
     try { json = txt ? JSON.parse(txt) : null; } catch(e){ json = null; }
     if (!res.ok) {
@@ -83,7 +76,7 @@ async function safeFetch(url, opts = {}) {
       throw new Error(json?.message || txt || `HTTP ${res.status}`);
     }
     return json;
-  } catch(err){
+  } catch(err) {
     console.error('[safeFetch] error', err);
     throw err;
   } finally { showSpinner(false); }
@@ -125,8 +118,7 @@ function drawChart(values){
 
 // ---------- UI population helpers ----------
 function populateVendorsIfEmpty(){
-  const ul = el('vendor-list');
-  if (!ul) return;
+  const ul = el('vendor-list'); if (!ul) return;
   if (ul.children.length) return;
   const vendors = [
     {name:'Electricity Co.', note:'Due 20 Nov'},
@@ -136,24 +128,18 @@ function populateVendorsIfEmpty(){
   ];
   ul.innerHTML = vendors.map(v=>`<li><div>${v.name}</div><div class="muted small">${v.note}</div></li>`).join('');
 }
-
 function populateActivityIfEmpty(){
-  const feed = el('activity-feed');
-  if (!feed) return;
+  const feed = el('activity-feed'); if (!feed) return;
   if (feed.children.length) return;
   const items = [
     {t:'Paid Electricity', a:'₹ 1,200', time:'2 days ago'},
     {t:'Sent money to shop@upi', a:'₹ 450', time:'3 days ago'},
     {t:'Recharge mobile', a:'₹ 199', time:'5 days ago'}
   ];
-  feed.innerHTML = items.map(i=>{
-    return `<div class="tx-item"><div style="display:flex;justify-content:space-between"><div><strong>${i.t}</strong><div class="muted small">${i.time}</div></div><div style="text-align:right"><div style="font-weight:700">${i.a}</div></div></div></div>`;
-  }).join('');
+  feed.innerHTML = items.map(i=>`<div class="tx-item"><div style="display:flex;justify-content:space-between"><div><strong>${i.t}</strong><div class="muted small">${i.time}</div></div><div style="text-align:right"><div style="font-weight:700">${i.a}</div></div></div></div>`).join('');
 }
-
 function populateNotificationsIfEmpty(){
-  const n = el('notifications');
-  if (!n) return;
+  const n = el('notifications'); if (!n) return;
   if (n.dataset.loaded) return;
   n.innerHTML = `<div class="muted small">No critical notifications. Tip: upload a profile picture for personalization.</div>`;
   n.dataset.loaded = '1';
@@ -163,9 +149,8 @@ function populateNotificationsIfEmpty(){
 async function loadTransactionsForCurrentUser(){
   const user = getUser();
   const listContainer = el('tx-list');
-  if (!user){
+  if (!user) {
     if (listContainer) listContainer.innerHTML = '<div class="muted">Please login to view transactions</div>';
-    // also draw empty chart and populate sample feed
     drawChart([]);
     populateActivityIfEmpty();
     populateVendorsIfEmpty();
@@ -175,7 +160,6 @@ async function loadTransactionsForCurrentUser(){
   try {
     const res = await safeFetch(`/api/transactions?email=${encodeURIComponent(user.email)}`);
     const list = (res && res.transactions) ? res.transactions : [];
-    // render list in panel (if panel present)
     if (listContainer) {
       if (!list.length) listContainer.innerHTML = '<div class="muted">No transactions</div>';
       else listContainer.innerHTML = list.map(t=>{
@@ -183,7 +167,6 @@ async function loadTransactionsForCurrentUser(){
         return `<div class="tx-item"><div style="display:flex;justify-content:space-between"><div><strong>${t.type}</strong><div class="muted small">${t.details || t.to_email || ''}</div></div><div style="text-align:right"><div style="font-weight:700">₹ ${t.amount}</div><div class="muted small">${ts}</div></div></div></div>`;
       }).join('');
     }
-    // stats & chart
     const amounts = list.slice(0,12).map(x=>Number(x.amount)||0).reverse();
     if (el('stat-tx')) el('stat-tx').innerText = list.length;
     if (el('stat-recent')) el('stat-recent').innerText = list[0] ? (list[0].details || list[0].to_email || '—') : '—';
@@ -205,7 +188,6 @@ function showTransfer(){
     <div style="margin-top:10px" class="row gap"><button id="do-transfer" class="btn-primary">Send</button> <button class="btn-ghost" onclick="renderApp()">Cancel</button></div>
   `);
   const btn = el('do-transfer'); if (btn) btn.addEventListener('click', async ()=>{
-    // re-use transfer handler logic to keep endpoints unchanged
     const user = getUser(); if (!user) return alert('Login first');
     const toEmail = (el('to-email') && el('to-email').value.trim().toLowerCase()) || '';
     const amount = (el('tamount') && el('tamount').value) || '';
@@ -295,9 +277,16 @@ function logout(){
 }
 window.logout = logout;
 
-// ---------- sidebar toggle & profile pic wiring ----------
-function toggleSidebar(){ const sb = el('sidebar'); if (!sb) return; sb.classList.toggle('collapsed'); }
+// ---------- sidebar toggle (push content) ----------
+function toggleSidebar(){
+  const sb = el('sidebar');
+  if (!sb) return;
+  sb.classList.toggle('collapsed');            // visual change
+  document.body.classList.toggle('sb-collapsed'); // influences .main margin via CSS
+}
 function attachSidebarToggle(){ const t = el('sidebar-toggle'); if (t) t.addEventListener('click', toggleSidebar); }
+
+// ---------- profile picture wiring ----------
 function attachProfilePicUI(){
   const fileInput = el('profile-pic-input');
   const changeBtn = el('btn-change-pic');
@@ -324,9 +313,9 @@ async function showDashboard(user){
   populateNotificationsIfEmpty();
 }
 
+// animate balance from previous value
 function animateBalanceElm(amount){
-  const elb = el('balance');
-  if (!elb) return;
+  const elb = el('balance'); if (!elb) return;
   const start = Number(elb.dataset.current || 0);
   const end = Number(amount || 0);
   elb.dataset.current = end;
@@ -340,7 +329,7 @@ function animateBalanceElm(amount){
   requestAnimationFrame(step);
 }
 
-// ---------- render app ----------
+// ---------- render application based on session ----------
 function renderApp(){
   restoreUser();
   const user = getUser();
@@ -350,7 +339,6 @@ function renderApp(){
     if (el('dashboard')) el('dashboard').style.display = 'none';
     if (el('user-chip')) el('user-chip').style.display = 'none';
     if (el('logout-btn')) el('logout-btn').style.display = 'none';
-    // default content fill
     populateActivityIfEmpty();
     populateVendorsIfEmpty();
     populateNotificationsIfEmpty();
@@ -359,7 +347,7 @@ function renderApp(){
   }
 }
 
-// ---------- DOM wiring ----------
+// ---------- initialize DOM wiring ----------
 document.addEventListener('DOMContentLoaded', function(){
   attachSidebarToggle();
   attachProfilePicUI();
@@ -387,13 +375,9 @@ document.addEventListener('DOMContentLoaded', function(){
   const sReg = el('show-register'); if (sReg) sReg.addEventListener('click', ()=> el('reg-email') && el('reg-email').focus());
   const sLogin = el('show-login'); if (sLogin) sLogin.addEventListener('click', ()=> el('login-email') && el('login-email').focus());
 
-  // ensure spinner is hidden
   showSpinner(false);
-
-  // initial app render
   renderApp();
 });
-
 
 
 
