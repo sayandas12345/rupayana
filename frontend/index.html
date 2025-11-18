@@ -1,140 +1,84 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Rupayana</title>
-    <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Rupayana — Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
-    <!-- 🔵 Loading Overlay -->
-    <div id="loader">
-        <div class="spinner"></div>
+  <header class="site-header">
+    <div class="left">
+      <div class="brand">
+        <div class="brand-logo">R</div>
+        <div class="brand-info">
+          <div class="brand-name">Rupayana</div>
+          <div class="brand-tag">Instant payments • Secure • Fast</div>
+        </div>
+      </div>
     </div>
+    <div class="right">
+      <div class="demo-pill">Demo Mode</div>
+      <div class="signed">Signed in as <strong id="user-name">guest</strong></div>
+    </div>
+  </header>
 
-    <!-- 🔵 Sidebar -->
-    <div id="sidebar" class="sidebar">
-        <div class="sidebar-header">
-            <img src="https://i.ibb.co/5G1Fp7Z/user.png" class="avatar" />
-            <h3 id="user-sidebar-name">User</h3>
+  <main class="page">
+    <section class="container">
+      <div class="wallet-card card">
+        <div class="wallet-top">
+          <div class="wallet-left">
+            <div class="wallet-label">Wallet balance</div>
+            <div class="wallet-amount" id="wallet-amount">₹ 0</div>
+          </div>
+          <div class="wallet-account">
+            <div class="account-title">Account</div>
+            <div id="account-email" class="account-email">guest@example.com</div>
+          </div>
         </div>
 
-        <div class="sidebar-links">
-            <button onclick="navigate('dashboard-section')">🏠 Dashboard</button>
-            <button onclick="navigate('profile-section')">👤 Profile</button>
-            <button onclick="navigate('transfers-section')">💸 Money Transfer</button>
-            <button onclick="navigate('bills-section')">🧾 Bill Payments</button>
-            <button onclick="navigate('history-section')">📜 Transactions</button>
+        <div class="tiles">
+          <div class="tile" onclick="showFeature('upi')">
+            <div class="tile-icon tile-u">U</div>
+            <div class="tile-info"><div class="tile-title">UPI</div><div class="tile-sub">Fast transfers</div></div>
+          </div>
+
+          <div class="tile" onclick="showFeature('bank')">
+            <div class="tile-icon tile-b">B</div>
+            <div class="tile-info"><div class="tile-title">Bank</div><div class="tile-sub">NEFT/IMPS</div></div>
+          </div>
+
+          <div class="tile" onclick="showFeature('bill')">
+            <div class="tile-icon tile-p">P</div>
+            <div class="tile-info"><div class="tile-title">Bill Pay</div><div class="tile-sub">Utilities & recharge</div></div>
+          </div>
+
+          <div class="tile" onclick="showFeature('history')">
+            <div class="tile-icon tile-h">H</div>
+            <div class="tile-info"><div class="tile-title">History</div><div class="tile-sub">View transactions</div></div>
+          </div>
         </div>
+      </div>
 
-        <button id="logout-btn" class="logout-btn">Logout</button>
-    </div>
+      <button class="view-all">View all</button>
 
-    <!-- 🔵 Top Navbar -->
-    <div class="navbar">
-        <button id="menu-btn">☰</button>
-        <h1>Rupayana</h1>
-    </div>
+      <div class="transactions card">
+        <div class="tx-row">
+          <div class="tx-date">15 Nov 2025</div>
+          <div class="tx-desc">Electricity</div>
+          <div class="tx-amt">₹ 1,200</div>
+        </div>
+        <div class="tx-row">
+          <div class="tx-date">14 Nov 2025</div>
+          <div class="tx-desc">To: vendor@upi</div>
+          <div class="tx-amt">₹ 250</div>
+        </div>
+        <!-- placeholder more -->
+      </div>
+    </section>
+  </main>
 
-    <!-- 🔵 Main Container -->
-    <div id="main">
-
-        <!-- =========================== -->
-        <!-- 🔐 LOGIN SECTION -->
-        <!-- =========================== -->
-        <section id="login-section" class="page active">
-            <h2>Login</h2>
-            <div class="card">
-                <input type="email" id="log-email" placeholder="Email" />
-                <input type="password" id="log-password" placeholder="Password" />
-                <button id="log-btn">Login</button>
-                <p>No account? <span class="link" onclick="show('register-section')">Register</span></p>
-            </div>
-        </section>
-
-        <!-- =========================== -->
-        <!-- 📝 REGISTER SECTION -->
-        <!-- =========================== -->
-        <section id="register-section" class="page">
-            <h2>Create Account</h2>
-            <div class="card">
-                <input type="text" id="reg-name" placeholder="Full Name" />
-                <input type="email" id="reg-email" placeholder="Email" />
-                <input type="text" id="reg-phone" placeholder="Phone Number" />
-                <input type="password" id="reg-password" placeholder="Password" />
-                <button id="reg-btn">Register</button>
-                <p>Already registered? <span class="link" onclick="show('login-section')">Login</span></p>
-            </div>
-        </section>
-
-        <!-- =========================== -->
-        <!-- 🏦 DASHBOARD SECTION -->
-        <!-- =========================== -->
-        <section id="dashboard-section" class="page">
-            <h2>Dashboard</h2>
-
-            <div class="balance-card">
-                <p>Available Balance</p>
-                <h1 id="dash-balance">₹0</h1>
-            </div>
-
-            <div class="quick-actions">
-                <button onclick="navigate('transfers-section')">💸 Transfer Money</button>
-                <button onclick="navigate('bills-section')">🧾 Pay Bills</button>
-                <button onclick="navigate('profile-section')">👤 Profile</button>
-            </div>
-        </section>
-
-        <!-- =========================== -->
-        <!-- 👤 PROFILE SECTION -->
-        <!-- =========================== -->
-        <section id="profile-section" class="page">
-            <h2>Profile</h2>
-            <div class="card">
-                <p><b>Name:</b> <span id="dash-name"></span></p>
-                <p><b>Email:</b> <span id="dash-email"></span></p>
-                <p><b>Phone:</b> <span id="dash-phone"></span></p>
-            </div>
-        </section>
-
-        <!-- =========================== -->
-        <!-- 💸 TRANSFER SECTION -->
-        <!-- =========================== -->
-        <section id="transfers-section" class="page">
-            <h2>Money Transfer</h2>
-            <div class="card">
-                <input type="text" placeholder="Receiver Email" />
-                <input type="number" placeholder="Amount" />
-                <button>Send Money</button>
-            </div>
-        </section>
-
-        <!-- =========================== -->
-        <!-- 🧾 BILL PAYMENTS -->
-        <!-- =========================== -->
-        <section id="bills-section" class="page">
-            <h2>Bill Payments</h2>
-            <div class="card">
-                <button>Electricity</button>
-                <button>Mobile Recharge</button>
-                <button>Water Bill</button>
-            </div>
-        </section>
-
-        <!-- =========================== -->
-        <!-- 📜 HISTORY SECTION -->
-        <!-- =========================== -->
-        <section id="history-section" class="page">
-            <h2>Transactions History</h2>
-            <div class="card">
-                <p>No transactions yet.</p>
-            </div>
-        </section>
-
-    </div>
-
-    <script src="app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
 

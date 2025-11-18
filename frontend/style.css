@@ -1,160 +1,77 @@
-/* GLOBAL */
-body {
-    margin: 0;
-    padding: 0;
-    font-family: Poppins, sans-serif;
-    background: #f5f7fa;
+/* style.css — polished dark dashboard resembling screenshot */
+
+:root{
+  --bg-1:#041427;
+  --bg-2:#071627;
+  --card:#0b1a28;
+  --muted:#9bb1c6;
+  --accent:#5cc2ff;
+  --glass: rgba(255,255,255,0.03);
 }
 
-/* Loader */
-#loader {
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    background: white;
-    top: 0;
-    left: 0;
-    z-index: 2000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-.spinner {
-    width: 40px;
-    height: 40px;
-    border: 5px solid #ddd;
-    border-top-color: #4169e1;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
+*{box-sizing:border-box;margin:0;padding:0;font-family:Inter,Segoe UI,Arial}
 
-/* Navbar */
-.navbar {
-    background: #4169e1;
-    color: white;
-    padding: 15px;
-    display: flex;
-    align-items: center;
-}
-.navbar h1 {
-    flex-grow: 1;
-    text-align: center;
-    margin: 0;
-}
-#menu-btn {
-    font-size: 24px;
-    color: white;
-    background: none;
-    border: none;
-    cursor: pointer;
+body{
+  background: linear-gradient(180deg,#041427 0%, #051827 70%);
+  color:#e6f0fb;
+  min-height:100vh;
 }
 
-/* Sidebar */
-.sidebar {
-    width: 250px;
-    background: #172a46;
-    height: 100%;
-    position: fixed;
-    top: 0;
-    left: -260px;
-    color: white;
-    padding: 20px;
-    transition: 0.3s;
-    z-index: 1200;
+/* header */
+.site-header{
+  display:flex;align-items:center;justify-content:space-between;padding:28px 48px;border-bottom:1px solid rgba(255,255,255,0.02);
 }
-.sidebar.open {
-    left: 0;
+.brand{display:flex;align-items:center;gap:14px}
+.brand-logo{
+  width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#5b9bff,#a96bff);
+  display:flex;align-items:center;justify-content:center;font-weight:700;color:white;font-size:20px;
 }
-.sidebar-header {
-    text-align: center;
-}
-.avatar {
-    width: 70px;
-    margin-bottom: 10px;
-    border-radius: 50%;
-}
-.sidebar-links button {
-    display: block;
-    width: 100%;
-    padding: 12px;
-    margin: 8px 0;
-    background: #1e3a63;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-}
-.logout-btn {
-    width: 100%;
-    padding: 12px;
-    margin-top: 20px;
-    background: red;
-    border: none;
-    border-radius: 6px;
-    color: white;
-}
+.brand-info .brand-name{font-weight:700;font-size:18px}
+.brand-info .brand-tag{color:var(--muted);font-size:13px;margin-top:4px}
+.right{display:flex;align-items:center;gap:18px}
+.demo-pill{background:rgba(255,255,255,0.03);padding:8px 12px;border-radius:20px;color:var(--muted);font-size:13px}
+.signed{color:var(--muted);font-size:14px}
 
-/* MAIN */
-#main {
-    padding: 20px;
-    transition: margin-left 0.3s;
-}
+/* main container */
+.page{padding:28px 48px}
+.container{max-width:1100px;margin:0 auto;}
 
-/* Sections */
-.page {
-    display: none;
+/* wallet card */
+.card{
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border-radius:16px;padding:22px;box-shadow:0 20px 40px rgba(2,8,12,0.5);margin-bottom:18px;
 }
-.page.active {
-    display: block;
-}
+.wallet-top{display:flex;justify-content:space-between;align-items:flex-start}
+.wallet-left{display:flex;flex-direction:column;gap:8px}
+.wallet-label{color:var(--muted)}
+.wallet-amount{font-size:36px;font-weight:800;margin-top:6px}
+.wallet-account{text-align:right}
+.account-title{color:var(--muted);font-size:13px}
+.account-email{font-weight:700;font-size:16px;margin-top:6px}
 
-/* Cards */
-.card {
-    background: white;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
-}
+/* tiles */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+.tile{display:flex;align-items:center;gap:14px;padding:14px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.005), rgba(255,255,255,0.01));cursor:pointer;transition:transform .12s ease,box-shadow .12s;}
+.tile:hover{transform:translateY(-6px);box-shadow:0 18px 40px rgba(2,8,12,0.5)}
+.tile-icon{width:56px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;color:white;font-size:18px}
+.tile-u{background:linear-gradient(135deg,#39d0d5,#0fb0ff)}
+.tile-b{background:linear-gradient(135deg,#7b57ff,#b16bff)}
+.tile-p{background:linear-gradient(135deg,#ff9a50,#ff7b3b)}
+.tile-h{background:linear-gradient(135deg,#5bd2ff,#6ad6f7)}
+.tile-title{font-weight:700}
+.tile-sub{color:var(--muted);font-size:13px;margin-top:4px}
 
-/* Inputs */
-input {
-    width: 100%;
-    padding: 12px;
-    margin: 10px 0;
-    font-size: 16px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-}
+/* view all & transactions */
+.view-all{margin:12px 0;padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:var(--muted);cursor:pointer}
+.transactions{padding:16px;border-radius:12px}
+.tx-row{display:flex;align-items:center;justify-content:space-between;padding:18px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0));margin-top:12px}
+.tx-date{color:var(--muted)}
+.tx-desc{flex:1;text-align:center;color:var(--muted)}
+.tx-amt{font-weight:700}
 
-/* Buttons */
-button {
-    padding: 12px;
-    width: 100%;
-    border: none;
-    background: #4169e1;
-    color: white;
-    border-radius: 8px;
-    cursor: pointer;
-}
-
-/* Balance card */
-.balance-card {
-    background: linear-gradient(135deg, #4169e1, #00b4db);
-    padding: 30px;
-    border-radius: 18px;
-    color: white;
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-/* Quick Actions */
-.quick-actions button {
-    margin: 10px 0;
-}
-
-.link {
-    color: #4169e1;
-    cursor: pointer;
+/* responsive */
+@media (max-width:900px){
+  .site-header{padding:18px}
+  .tiles{grid-template-columns:1fr}
+  .container{padding:0 12px}
 }
