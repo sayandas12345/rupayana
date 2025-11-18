@@ -1,75 +1,143 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Rupayana - Demo</title>
-  <style>
-    body{font-family:Arial,Helvetica,sans-serif;background:#0f172a;color:#e6eef8;padding:20px}
-    .card{background:#0b1220;padding:18px;border-radius:8px;max-width:720px;margin:10px auto}
-    input{display:block;width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #334155;background:#071028;color:#e6eef8}
-    button{padding:8px 12px;border-radius:6px;border:none;background:#2563eb;color:white;cursor:pointer}
-    .muted{color:#9aa6bd;font-size:13px}
-    nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rupayana</title>
+    <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="card">
-    <nav>
-      <div><strong>Rupayana</strong></div>
-      <div id="user-area"><span id="user-name"></span> <button id="logout-btn" style="display:none">Logout</button></div>
-    </nav>
 
-    <div id="auth" style="display:block">
-      <h3>Login</h3>
-      <div>
-        <input id="login-email" placeholder="Email">
-        <input id="login-password" placeholder="Password" type="password">
-        <div id="login-msg" class="muted"></div>
-        <button id="btn-login">Login</button>
-      </div>
-
-      <hr style="margin:16px 0">
-
-      <h3>Register</h3>
-      <div>
-        <input id="reg-name" placeholder="Full name">
-        <input id="reg-email" placeholder="Email">
-        <input id="reg-phone" placeholder="Phone">
-        <input id="reg-password" placeholder="Password" type="password">
-        <div id="reg-msg" class="muted"></div>
-        <button id="btn-register">Register</button>
-      </div>
+    <!-- 🔵 Loading Overlay -->
+    <div id="loader">
+        <div class="spinner"></div>
     </div>
 
-    <div id="dashboard" style="display:none">
-      <h3>Dashboard</h3>
-      <div>Welcome, <span id="user-name-display"></span></div>
-      <div>Email: <span id="acct-email"></span></div>
-      <div>Balance: <span id="balance">0</span></div>
+    <!-- 🔵 Sidebar -->
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <img src="https://i.ibb.co/5G1Fp7Z/user.png" class="avatar" />
+            <h3 id="user-sidebar-name">User</h3>
+        </div>
 
-      <hr>
+        <div class="sidebar-links">
+            <button onclick="navigate('dashboard-section')">🏠 Dashboard</button>
+            <button onclick="navigate('profile-section')">👤 Profile</button>
+            <button onclick="navigate('transfers-section')">💸 Money Transfer</button>
+            <button onclick="navigate('bills-section')">🧾 Bill Payments</button>
+            <button onclick="navigate('history-section')">📜 Transactions</button>
+        </div>
 
-      <div id="panel-body">
-        <p class="muted">Use the buttons below to view transfer/bill/profile/transactions UI.</p>
-      </div>
-
-      <div style="margin-top:12px">
-        <button onclick="showTx()">Transactions</button>
-        <button onclick="showTransfer()">Transfer</button>
-        <button onclick="showBill()">Bill Pay</button>
-        <button onclick="showProfile()">Profile</button>
-      </div>
+        <button id="logout-btn" class="logout-btn">Logout</button>
     </div>
-  </div>
 
-  <!-- Set the public backend URL the frontend should use.
-       If your backend public URL is different, replace the value below with it. -->
-  <script>window.API = "https://rupayana.onrender.com";</script>
+    <!-- 🔵 Top Navbar -->
+    <div class="navbar">
+        <button id="menu-btn">☰</button>
+        <h1>Rupayana</h1>
+    </div>
 
-  <script src="/app.js"></script>
+    <!-- 🔵 Main Container -->
+    <div id="main">
+
+        <!-- =========================== -->
+        <!-- 🔐 LOGIN SECTION -->
+        <!-- =========================== -->
+        <section id="login-section" class="page active">
+            <h2>Login</h2>
+            <div class="card">
+                <input type="email" id="log-email" placeholder="Email" />
+                <input type="password" id="log-password" placeholder="Password" />
+                <button id="log-btn">Login</button>
+                <p>No account? <span class="link" onclick="show('register-section')">Register</span></p>
+            </div>
+        </section>
+
+        <!-- =========================== -->
+        <!-- 📝 REGISTER SECTION -->
+        <!-- =========================== -->
+        <section id="register-section" class="page">
+            <h2>Create Account</h2>
+            <div class="card">
+                <input type="text" id="reg-name" placeholder="Full Name" />
+                <input type="email" id="reg-email" placeholder="Email" />
+                <input type="text" id="reg-phone" placeholder="Phone Number" />
+                <input type="password" id="reg-password" placeholder="Password" />
+                <button id="reg-btn">Register</button>
+                <p>Already registered? <span class="link" onclick="show('login-section')">Login</span></p>
+            </div>
+        </section>
+
+        <!-- =========================== -->
+        <!-- 🏦 DASHBOARD SECTION -->
+        <!-- =========================== -->
+        <section id="dashboard-section" class="page">
+            <h2>Dashboard</h2>
+
+            <div class="balance-card">
+                <p>Available Balance</p>
+                <h1 id="dash-balance">₹0</h1>
+            </div>
+
+            <div class="quick-actions">
+                <button onclick="navigate('transfers-section')">💸 Transfer Money</button>
+                <button onclick="navigate('bills-section')">🧾 Pay Bills</button>
+                <button onclick="navigate('profile-section')">👤 Profile</button>
+            </div>
+        </section>
+
+        <!-- =========================== -->
+        <!-- 👤 PROFILE SECTION -->
+        <!-- =========================== -->
+        <section id="profile-section" class="page">
+            <h2>Profile</h2>
+            <div class="card">
+                <p><b>Name:</b> <span id="dash-name"></span></p>
+                <p><b>Email:</b> <span id="dash-email"></span></p>
+                <p><b>Phone:</b> <span id="dash-phone"></span></p>
+            </div>
+        </section>
+
+        <!-- =========================== -->
+        <!-- 💸 TRANSFER SECTION -->
+        <!-- =========================== -->
+        <section id="transfers-section" class="page">
+            <h2>Money Transfer</h2>
+            <div class="card">
+                <input type="text" placeholder="Receiver Email" />
+                <input type="number" placeholder="Amount" />
+                <button>Send Money</button>
+            </div>
+        </section>
+
+        <!-- =========================== -->
+        <!-- 🧾 BILL PAYMENTS -->
+        <!-- =========================== -->
+        <section id="bills-section" class="page">
+            <h2>Bill Payments</h2>
+            <div class="card">
+                <button>Electricity</button>
+                <button>Mobile Recharge</button>
+                <button>Water Bill</button>
+            </div>
+        </section>
+
+        <!-- =========================== -->
+        <!-- 📜 HISTORY SECTION -->
+        <!-- =========================== -->
+        <section id="history-section" class="page">
+            <h2>Transactions History</h2>
+            <div class="card">
+                <p>No transactions yet.</p>
+            </div>
+        </section>
+
+    </div>
+
+    <script src="app.js"></script>
 </body>
 </html>
+
 
 
 
