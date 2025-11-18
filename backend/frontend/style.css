@@ -1,0 +1,246 @@
+/* --------------------------------------------- */
+/* GLOBAL  */
+/* --------------------------------------------- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Poppins, sans-serif;
+}
+
+body {
+    background: #f5f7fa;
+    transition: margin-left .28s ease;
+}
+
+/* --------------------------------------------- */
+/* LOADER */
+/* --------------------------------------------- */
+#loader {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    background: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.spinner {
+    width: 45px;
+    height: 45px;
+    border: 5px solid #d9d9d9;
+    border-top-color: #4169e1;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* --------------------------------------------- */
+/* NAVBAR */
+/* --------------------------------------------- */
+.navbar {
+    background: #4169e1;
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+}
+
+#menu-btn {
+    font-size: 25px;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+}
+
+.navbar h1 {
+    flex: 1;
+    text-align: center;
+    margin-right: 25px;
+}
+
+/* --------------------------------------------- */
+/* SIDEBAR */
+/* --------------------------------------------- */
+.sidebar {
+    width: 260px;
+    background: #172a46;
+    height: 100%;
+    position: fixed;
+    top: 0;
+    left: -260px;
+    transition: 0.28s ease;
+    padding: 20px;
+    color: white;
+    z-index: 1200;
+}
+
+.sidebar.open {
+    left: 0;
+}
+
+.sidebar-header {
+    text-align: center;
+    padding-bottom: 10px;
+}
+
+.avatar {
+    width: 80px;
+    border-radius: 50%;
+    margin-bottom: 10px;
+}
+
+.sidebar-links button {
+    width: 100%;
+    background: #1e3a63;
+    border: none;
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 10px 0;
+    cursor: pointer;
+    font-size: 16px;
+    transition: 0.25s;
+}
+
+.sidebar-links button:hover {
+    background: #294c7e;
+}
+
+.logout-btn {
+    width: 100%;
+    padding: 12px;
+    background: #d93025;
+    border: none;
+    color: white;
+    border-radius: 8px;
+    margin-top: 20px;
+    cursor: pointer;
+}
+
+/* --------------------------------------------- */
+/* MAIN LAYOUT */
+/* --------------------------------------------- */
+#main {
+    padding: 25px;
+    transition: margin-left 0.28s ease;
+}
+
+/* When sidebar open, push page right */
+body.sb-open #main {
+    margin-left: 260px;
+}
+
+/* --------------------------------------------- */
+/* PAGE SECTIONS */
+/* --------------------------------------------- */
+.page {
+    display: none;
+    animation: fadeIn .3s ease;
+}
+
+.page.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Center login/register cards */
+.page.card-centered {
+    max-width: 520px;
+    margin: 40px auto;
+}
+
+/* --------------------------------------------- */
+/* CARDS */
+/* --------------------------------------------- */
+.card {
+    background: #fff;
+    padding: 25px;
+    border-radius: 13px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+}
+
+/* --------------------------------------------- */
+/* INPUTS & BUTTONS */
+/* --------------------------------------------- */
+input {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border: 1px solid #d2d2d2;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    background: #4169e1;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 8px;
+    transition: 0.25s;
+}
+
+button:hover {
+    background: #3157c9;
+}
+
+.link {
+    color: #4169e1;
+    cursor: pointer;
+}
+
+/* --------------------------------------------- */
+/* BALANCE CARD */
+/* --------------------------------------------- */
+.balance-card {
+    background: linear-gradient(135deg, #4169e1, #00b4db);
+    padding: 30px;
+    border-radius: 18px;
+    color: white;
+    text-align: center;
+    margin-bottom: 25px;
+    box-shadow: 0 5px 12px rgba(0,0,0,0.12);
+}
+
+.balance-card h1 {
+    font-size: 38px;
+}
+
+/* --------------------------------------------- */
+/* QUICK ACTION BUTTONS */
+/* --------------------------------------------- */
+.quick-actions button {
+    margin: 10px 0;
+    font-size: 17px;
+}
+
+/* --------------------------------------------- */
+/* RESPONSIVE DESIGN */
+/* --------------------------------------------- */
+@media(max-width: 768px){
+    body.sb-open #main {
+        margin-left: 240px;
+    }
+    
+    .navbar h1 {
+        font-size: 22px;
+    }
+    
+    .balance-card {
+        padding: 25px;
+    }
+}
