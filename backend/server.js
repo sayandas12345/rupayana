@@ -1,240 +1,176 @@
-// backend/server.js
-require('dotenv').config();
-const express = require('express');
-const bodyParser = require('body-parser');
-const { Pool } = require('pg');
-const crypto = require('crypto');
+// --------------------------------------------------
+// server.js (FINAL WORKING VERSION)
+// --------------------------------------------------
+
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const bcrypt = require("bcryptjs");
+const cookieParser = require("cookie-parser");
 
 const app = express();
-const FRONTEND_BASE = process.env.FRONTEND_BASE || 'https://rupayana.vercel.app';
+app.use(express.json());
+app.use(cookieParser());
 
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (origin && origin === FRONTEND_BASE) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', FRONTEND_BASE);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  next();
-});
+// --------------------------------------------------
+// CORS FIX (CRITICAL FOR LOGIN/REGISTER)
+// --------------------------------------------------
+const FRONTEND_ORIGIN =
+  process.env.FRONTEND_ORIGIN || "https://rupayana.vercel.app";
 
-app.use(bodyParser.json());
-app.use((req, res, next) => { console.log(new Date().toISOString(), req.method, req.url); next(); });
+app.use(
+  cors({
+    origin: FRONTEND_ORIGIN,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  })
+);
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+// --------------------------------------------------
+// DATABASE: POSTGRES → fallback to SQLITE
+// --------------------------------------------------
+let usePostgres = false;
+let db = null;
 
-console.log('>>> USING DATABASE_URL host:', (() => {
-  try { const u = new URL(process.env.DATABASE_URL); return `${u.protocol}//${u.host}${u.pathname}`; }
-  catch (e) { return '(invalid DATABASE_URL)'; }
-})());
+if (process.env.DATABASE_URL) {
+  console.log(">>> USING POSTGRES:", process.env.DATABASE_URL);
 
-async function initDB() {
-  await pool.query(`
+  const { Pool } = require("pg");
+  db = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+  });
+  usePostgres = true;
+
+} else {
+  console.log(">>> USING SQLITE (fallback)");
+
+  const sqlite3 = require("sqlite3").verbose();
+  const DB_FILE = process.env.DB_FILE || "./database.sqlite";
+  db = new sqlite3.Database(DB_FILE);
+
+  // Ensure table exists
+  db.run(`
     CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT,
+      email TEXT UNIQUE,
       phone TEXT,
-      role TEXT,
-      isadmin BOOLEAN DEFAULT false,
-      resetToken TEXT,
-      resetExpires BIGINT
-    );
+      password TEXT,
+      balance INTEGER DEFAULT 0
+    )
   `);
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS transactions (
-      id SERIAL PRIMARY KEY,
-      from_email TEXT,
-      to_email TEXT,
-      amount NUMERIC,
-      type TEXT,
-      details TEXT,
-      created_at BIGINT DEFAULT (extract(epoch from now())::bigint)
-    );
-  `);
-  console.log('Postgres OK - tables ensured');
 }
-initDB().catch(err => { console.error('initDB error', err); process.exit(1); });
 
-function genToken(){ return crypto.randomBytes(24).toString('hex'); }
-function safeJSON(res, status, obj){ res.status(status).json(obj); }
-
-/* -----------------------
-   ROUTES
-   ----------------------- */
-
-// Register
-app.post(['/api/register','/register'], async (req, res) => {
-  try {
-    const { name, email, password, phone } = req.body || {};
-    if (!email || !password) return safeJSON(res,400,{ error:'Missing email or password' });
-    const normEmail = String(email).trim().toLowerCase();
-    const q = 'INSERT INTO users (name,email,password,phone) VALUES ($1,$2,$3,$4) RETURNING id';
-    try {
-      const r = await pool.query(q, [name||'', normEmail, password, phone||'']);
-      return safeJSON(res,201,{ user: { id: r.rows[0].id, name: name||'', email: normEmail, phone: phone||'' } });
-    } catch (err) {
-      if (err.code === '23505') return safeJSON(res,409,{ error:'Email already exists' });
-      console.error('register err', err);
-      return safeJSON(res,500,{ error:'DB error' });
+// --------------------------------------------------
+// UNIVERSAL QUERY HELPERS
+// --------------------------------------------------
+function runQuery(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    if (usePostgres) {
+      db.query(sql, params)
+        .then((r) => resolve(r.rows))
+        .catch(reject);
+    } else {
+      db.all(sql, params, (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
     }
-  } catch(e){ console.error('register unexpected', e); safeJSON(res,500,{error:'Server error'}); }
-});
+  });
+}
 
-// Login
-app.post(['/api/login','/login'], async (req, res) => {
-  try {
-    const { email, password } = req.body || {};
-    if (!email || !password) return safeJSON(res,400,{ error:'Missing email or password' });
-
-    const normEmail = String(email).trim().toLowerCase();
-    console.log(`[login] attempt for email="${normEmail}"`);
-    const q = 'SELECT id,name,email,password,phone,isadmin FROM users WHERE LOWER(email)=LOWER($1) LIMIT 1';
-    const r = await pool.query(q, [normEmail]);
-
-    if (!r.rows.length) {
-      console.warn('[login] user not found for', normEmail);
-      return safeJSON(res,401,{ error:'Invalid credentials' });
+function runExec(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    if (usePostgres) {
+      db.query(sql + " RETURNING *", params)
+        .then((r) => resolve(r.rows[0]))
+        .catch(reject);
+    } else {
+      db.run(sql, params, function (err) {
+        if (err) reject(err);
+        else resolve({ id: this.lastID });
+      });
     }
-    const row = r.rows[0];
+  });
+}
 
-    console.log('[login] found user id=%s; stored-password-length=%d; provided-password-length=%d', row.id, (row.password||'').length, (password||'').length);
-
-    if (!row.password || String(row.password) !== String(password)) {
-      console.warn('[login] password mismatch for', normEmail);
-      return safeJSON(res,401,{ error:'Invalid credentials' });
-    }
-
-    const user = { id: row.id, name: row.name, email: row.email, phone: row.phone, isAdmin: row.isadmin };
-    console.log('[login] success for', normEmail);
-    return safeJSON(res,200,{ user });
-  } catch(e){ console.error('login err', e); safeJSON(res,500,{error:'Server error'}); }
-});
-
-// Logout - simple endpoint to avoid frontend 404
-app.post('/api/logout', (req, res) => safeJSON(res,200,{ success:true, message:'Logged out' }));
-
-// Update profile
-app.post(['/api/update-profile','/update-profile'], async (req,res) => {
+// --------------------------------------------------
+// REGISTER
+// --------------------------------------------------
+app.post("/api/register", async (req, res) => {
   try {
-    const { email, name, phone } = req.body || {};
-    if (!email) return safeJSON(res,400,{ error:'Missing email' });
-    const normEmail = String(email).trim().toLowerCase();
-    await pool.query('UPDATE users SET name=$1, phone=$2 WHERE LOWER(email)=LOWER($3)', [name||'', phone||'', normEmail]);
-    const r = await pool.query('SELECT id,name,email,phone FROM users WHERE LOWER(email)=LOWER($1)', [normEmail]);
-    return safeJSON(res,200,{ user: r.rows[0], message:'Profile updated' });
-  } catch(e){ console.error('update-profile err', e); safeJSON(res,500,{error:'Server error'}); }
+    const { name, email, phone, password } = req.body;
+
+    if (!name || !email || !password)
+      return res.status(400).json({ error: "Missing fields" });
+
+    const exists = await runQuery("SELECT id FROM users WHERE email = $1", [
+      email,
+    ]);
+    if (exists.length > 0)
+      return res.status(409).json({ error: "Email already exists" });
+
+    const hashed = await bcrypt.hash(password, 10);
+
+    await runExec(
+      "INSERT INTO users (name, email, phone, password, balance) VALUES ($1,$2,$3,$4,0)",
+      [name, email, phone || "", hashed]
+    );
+
+    const user = await runQuery(
+      "SELECT id, name, email, phone, balance FROM users WHERE email = $1",
+      [email]
+    );
+
+    return res.json({ message: "Registered", user: user[0] });
+  } catch (e) {
+    console.error("REGISTER ERROR:", e);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
-// Transfer / Transaction insert
-app.post(['/api/transfer','/transfer','/api/transaction','/transaction'], async (req,res) => {
+// --------------------------------------------------
+// LOGIN
+// --------------------------------------------------
+app.post("/api/login", async (req, res) => {
   try {
-    const { fromEmail, toEmail, amount, mode, type, details } = req.body || {};
-    const from = fromEmail || req.body.from;
-    const to = toEmail || req.body.to;
-    const amt = (amount !== undefined) ? amount : req.body.amount;
-    if (!from || !to || !amt) return safeJSON(res,400,{ error:'Missing fields' });
-    const ttype = type || (mode ? mode : 'transfer');
-    const q = 'INSERT INTO transactions (from_email,to_email,amount,type,details) VALUES ($1,$2,$3,$4,$5) RETURNING id';
-    const r = await pool.query(q, [from, to, amt, ttype, details||'']);
-    return safeJSON(res,200,{ id: r.rows[0].id, from, to, amount:amt, type:ttype });
-  } catch(e){ console.error('transfer err', e); safeJSON(res,500,{error:'Server error'}); }
+    const { email, password } = req.body;
+
+    const userRows = await runQuery(
+      "SELECT id, name, email, phone, password, balance FROM users WHERE email = $1",
+      [email]
+    );
+
+    if (userRows.length === 0)
+      return res.status(401).json({ error: "Invalid credentials" });
+
+    const user = userRows[0];
+    const ok = await bcrypt.compare(password, user.password);
+
+    if (!ok) return res.status(401).json({ error: "Invalid credentials" });
+
+    delete user.password;
+    return res.json({ message: "Logged in", user });
+  } catch (e) {
+    console.error("LOGIN ERROR:", e);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
-// Billpay
-app.post(['/api/billpay','/billpay'], async (req,res) => {
-  try {
-    const { email, biller, amount } = req.body || {};
-    if (!email || !biller || amount === undefined) return safeJSON(res,400,{ error:'Missing fields' });
-    const q = 'INSERT INTO transactions (from_email,to_email,amount,type,details) VALUES ($1,$2,$3,$4,$5) RETURNING id';
-    const r = await pool.query(q, [email, biller, amount, 'bill', `biller:${biller}`]);
-    return safeJSON(res,200,{ id: r.rows[0].id, message:'Bill paid' });
-  } catch(e){ console.error('billpay err', e); safeJSON(res,500,{error:'Server error'}); }
+// --------------------------------------------------
+// LOGOUT
+// --------------------------------------------------
+app.post("/api/logout", (req, res) => {
+  return res.json({ success: true, message: "Logged out" });
 });
 
-// Transactions (GET by email query param)
-app.get(['/api/transactions','/transactions'], async (req,res) => {
-  try {
-    const email = req.query.email;
-    if (!email) return safeJSON(res,400,{ error:'Missing email query param' });
-    const norm = String(email).trim().toLowerCase();
-    const q = `SELECT id, from_email, to_email, amount, type, details, created_at FROM transactions
-               WHERE LOWER(from_email)=LOWER($1) OR LOWER(to_email)=LOWER($1)
-               ORDER BY created_at DESC`;
-    const r = await pool.query(q, [norm]);
-    return safeJSON(res,200,{ transactions: r.rows || [] });
-  } catch(e){ console.error('transactions err', e); safeJSON(res,500,{error:'Server error'}); }
-});
+// --------------------------------------------------
+// Start Server
+// --------------------------------------------------
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log("Backend running on port", PORT));
 
-// Admin users
-app.get(['/api/admin/users','/admin/users'], async (req,res) => {
-  try {
-    const r = await pool.query('SELECT id,name,email,phone,isadmin AS "isAdmin" FROM users ORDER BY id DESC');
-    return safeJSON(res,200,{ users: r.rows || [] });
-  } catch(e){ console.error('admin users err', e); safeJSON(res,500,{error:'Server error'}); }
-});
-
-// Request reset
-app.post(['/api/request-reset','/request-reset'], async (req,res) => {
-  try {
-    const { email } = req.body || {};
-    if (!email) return safeJSON(res,400,{ error:'Missing' });
-    const norm = String(email).trim().toLowerCase();
-    const r = await pool.query('SELECT id FROM users WHERE LOWER(email)=LOWER($1)', [norm]);
-    if (!r.rows.length) return safeJSON(res,404,{ error:'No user with that email' });
-    const token = genToken();
-    const expires = Date.now() + 1000*60*60;
-    await pool.query('UPDATE users SET resetToken=$1, resetExpires=$2 WHERE LOWER(email)=LOWER($3)', [token, expires, norm]);
-    const resetLink = `${FRONTEND_BASE}/reset.html?token=${token}&email=${encodeURIComponent(norm)}`;
-    return safeJSON(res,200,{ message:'Reset link created', resetLink });
-  } catch(e){ console.error('request-reset err', e); safeJSON(res,500,{error:'Server error'}); }
-});
-
-// Reset password
-app.post(['/api/reset-password','/reset-password'], async (req,res) => {
-  try {
-    const { email, token, newPassword } = req.body || {};
-    if (!email || !token || !newPassword) return safeJSON(res,400,{ error:'Missing' });
-    const norm = String(email).trim().toLowerCase();
-    const r = await pool.query('SELECT resetToken, resetExpires FROM users WHERE LOWER(email)=LOWER($1)', [norm]);
-    if (!r.rows.length) return safeJSON(res,404,{ error:'User not found' });
-    const row = r.rows[0];
-    if (!row.resettoken || String(row.resettoken) !== token || !row.resetexpires || Date.now() > Number(row.resetexpires)) {
-      return safeJSON(res,400,{ error:'Invalid or expired token' });
-    }
-    await pool.query('UPDATE users SET password=$1, resetToken=NULL, resetExpires=NULL WHERE LOWER(email)=LOWER($2)', [newPassword, norm]);
-    return safeJSON(res,200,{ message:'Password updated' });
-  } catch(e){ console.error('reset-password err', e); safeJSON(res,500,{error:'Server error'}); }
-});
-
-// Debug: list users
-app.get('/api/debug-users', async (req, res) => {
-  try {
-    const r = await pool.query('SELECT id,name,email,phone,isadmin AS "isAdmin" FROM users ORDER BY id DESC LIMIT 200');
-    return res.json({ users: r.rows });
-  } catch (e) { console.error('debug-users err', e); return res.status(500).json({ error: 'Server error' }); }
-});
-
-// health
-app.get('/health', (req, res) => res.send('ok'));
-
-// global error handler
-app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err && (err.stack || err));
-  if (!res.headersSent) res.status(500).json({ error: 'Internal server error' });
-});
-
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 
 
