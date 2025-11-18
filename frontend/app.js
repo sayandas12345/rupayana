@@ -1,147 +1,111 @@
-
-
-
-
-
-
-
-
-
-
-// --------------------------------------------------
-// app.js (FINAL WORKING VERSION)
-// --------------------------------------------------
-
-// API BASE
-const API =
-  typeof window !== "undefined" && window.API
-    ? window.API
-    : "https://rupayana.onrender.com";
-
-console.log("[app] Using API =", API);
+// API root
+const API = "https://rupayana.onrender.com";
 
 // Helper
-function el(id) {
-  return document.getElementById(id);
-}
+const el = (id) => document.getElementById(id);
 
-// Page switcher
-function show(id) {
-  document.querySelectorAll(".page").forEach((p) => (p.style.display = "none"));
-  el(id).style.display = "block";
-}
-
-// --------------------------------------------------
-// safeFetch
-// --------------------------------------------------
-async function safeFetch(path, options = {}) {
-  const url = API + path;
-
-  try {
-    const res = await fetch(url, {
-      ...options,
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...(options.headers || {}),
-      },
-    });
-
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      console.error("HTTP ERROR:", res.status, data);
-      throw new Error(data.error || "Error");
-    }
-
-    return data;
-  } catch (e) {
-    console.error("FETCH FAILED:", e);
-    throw e;
-  }
-}
-
-// --------------------------------------------------
-// Local Storage Helpers
-// --------------------------------------------------
-function saveUser(u) {
-  localStorage.setItem("user", JSON.stringify(u));
-}
-function loadUser() {
-  const u = localStorage.getItem("user");
-  return u ? JSON.parse(u) : null;
-}
-function logout() {
-  safeFetch("/api/logout", { method: "POST" });
-  localStorage.removeItem("user");
-  show("login-section");
-}
-
-// --------------------------------------------------
-// Dashboard
-// --------------------------------------------------
-function showDashboard(user) {
-  el("dash-name").innerText = user.name;
-  el("dash-email").innerText = user.email;
-  el("dash-balance").innerText = "₹" + user.balance;
-  show("dashboard-section");
-}
-
-// --------------------------------------------------
-// Register
-// --------------------------------------------------
-async function registerHandler() {
-  const name = el("reg-name").value;
-  const email = el("reg-email").value;
-  const phone = el("reg-phone").value;
-  const password = el("reg-password").value;
-
-  try {
-    const data = await safeFetch("/api/register", {
-      method: "POST",
-      body: JSON.stringify({ name, email, phone, password }),
-    });
-
-    if (data.user) {
-      saveUser(data.user);
-      showDashboard(data.user);
-    }
-  } catch (e) {
-    alert("Register failed: " + e.message);
-  }
-}
-
-// --------------------------------------------------
-// Login
-// --------------------------------------------------
-async function loginHandler() {
-  const email = el("log-email").value;
-  const password = el("log-password").value;
-
-  try {
-    const data = await safeFetch("/api/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (data.user) {
-      saveUser(data.user);
-      showDashboard(data.user);
-    }
-  } catch (e) {
-    alert("Login failed: " + e.message);
-  }
-}
-
-// --------------------------------------------------
-// INIT
-// --------------------------------------------------
+// Loader
 window.onload = () => {
-  const user = loadUser();
-  if (user) showDashboard(user);
-  else show("login-section");
+    setTimeout(() => (el("loader").style.display = "none"), 700);
 
-  if (el("reg-btn")) el("reg-btn").onclick = registerHandler;
-  if (el("log-btn")) el("log-btn").onclick = loginHandler;
-  if (el("logout-btn")) el("logout-btn").onclick = logout;
+    const user = loadUser();
+    if (user) showDashboard(user);
+    else show("login-section");
 };
+
+// Sidebar
+document.getElementById("menu-btn").onclick = () => {
+    document.getElementById("sidebar").classList.toggle("open");
+};
+
+// PAGE NAVIGATION
+function show(pageID) {
+    document.querySelectorAll(".page").forEach((p) => p.classList.remove("active"));
+    el(pageID).classList.add("active");
+}
+
+// For sidebar navigation
+function navigate(pageID) {
+    show(pageID);
+    document.getElementById("sidebar").classList.remove("open");
+}
+
+// STORAGE
+function saveUser(u) { localStorage.setItem("user", JSON.stringify(u)); }
+function loadUser() {
+    const u = localStorage.getItem("user");
+    return u ? JSON.parse(u) : null;
+}
+
+// DASHBOARD UPDATE
+function showDashboard(user) {
+    show("dashboard-section");
+
+    el("dash-name").innerText = user.name;
+    el("dash-email").innerText = user.email;
+    el("dash-phone").innerText = user.phone;
+    el("dash-balance").innerText = "₹" + user.balance;
+
+    el("user-sidebar-name").innerText = user.name;
+}
+
+// FETCH WRAPPER
+async function safeFetch(endpoint, data) {
+    const res = await fetch(API + endpoint, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+    });
+
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error);
+    return json;
+}
+
+// LOGIN
+el("log-btn").onclick = async () => {
+    try {
+        const email = el("log-email").value;
+        const password = el("log-password").value;
+        const result = await safeFetch("/api/login", { email, password });
+
+        saveUser(result.user);
+        showDashboard(result.user);
+    } catch (err) {
+        alert("Login failed: " + err.message);
+    }
+};
+
+// REGISTER
+el("reg-btn").onclick = async () => {
+    try {
+        const name = el("reg-name").value;
+        const email = el("reg-email").value;
+        const phone = el("reg-phone").value;
+        const password = el("reg-password").value;
+        const result = await safeFetch("/api/register", { name, email, phone, password });
+
+        saveUser(result.user);
+        showDashboard(result.user);
+    } catch (err) {
+        alert("Register failed: " + err.message);
+    }
+};
+
+// LOGOUT
+el("logout-btn").onclick = () => {
+    localStorage.removeItem("user");
+    show("login-section");
+};
+
+
+
+
+
+
+
+
+
+
+

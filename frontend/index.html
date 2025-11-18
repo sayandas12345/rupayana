@@ -1,194 +1,144 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Rupayana — Animated Modern</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%232563eb'/%3E%3Ctext x='50' y='65' font-size='60' text-anchor='middle' fill='white'%3ER%3C/text%3E%3C/svg%3E">
-  <link rel="stylesheet" href="/style.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rupayana</title>
+    <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="app-wrap">
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-top">
-        <div class="brand">
-          <div class="logo" id="logo">R</div>
-          <div class="brand-text">
-            <div class="brand-title">Rupayana</div>
-            <div class="brand-sub muted">Secure • Fast</div>
-          </div>
-        </div>
-        <button id="sidebar-toggle" class="sidebar-toggle" title="Collapse sidebar">☰</button>
-      </div>
 
-      <nav class="menu" id="menu">
-        <button id="menu-overview" class="menu-btn active" data-index="0">Overview</button>
-        <button id="menu-transfer" class="menu-btn" data-index="1">Transfer</button>
-        <button id="menu-bill" class="menu-btn" data-index="2">Bill Pay</button>
-        <button id="menu-history" class="menu-btn" data-index="3">History</button>
-        <button id="menu-profile" class="menu-btn" data-index="4">Profile</button>
-      </nav>
-
-      <div class="account-tile">
-        <!-- default avatar will be set by app.js (either upload or generated SVG) -->
-        <img id="sidebar-avatar" alt="avatar" class="avatar-img" src="">
-        <div class="account-info">
-          <div id="acct-email" class="acct-email">not signed in</div>
-          <div class="small muted">Your account</div>
-        </div>
-      </div>
-
-      <div class="promo-card card small-card" id="promo">
-        <div class="promo-title">Upgrade for Analytics</div>
-        <div class="muted small">Get charts, export CSV, and persistent DB options.</div>
-      </div>
-
-    </aside>
-
-    <main class="main">
-      <header class="topbar">
-        <input class="search" placeholder="Search transactions, vendors, UPI id..." id="search-input">
-        <div class="top-actions">
-          <div class="user-chip" id="user-chip" style="display:none">
-            <img id="user-avatar" class="avatar-sm" src="" alt="u"/>
-            <span id="user-name">User</span>
-          </div>
-          <button id="logout-btn" class="btn-ghost" style="display:none">Logout</button>
-        </div>
-      </header>
-
-      <section class="grid">
-        <div class="col-left">
-          <!-- AUTH -->
-          <div id="auth" class="card auth-card">
-            <h3>Login</h3>
-            <div class="form">
-              <input id="login-email" class="input" placeholder="Email">
-              <input id="login-password" class="input" placeholder="Password" type="password">
-              <div id="login-msg" class="muted small"></div>
-              <div class="row gap">
-                <button id="btn-login" class="btn-primary">Login</button>
-                <button id="show-register" class="btn-ghost">Register</button>
-              </div>
-            </div>
-
-            <hr class="sep">
-
-            <h3>Register</h3>
-            <div class="form">
-              <input id="reg-name" class="input" placeholder="Full name">
-              <input id="reg-email" class="input" placeholder="Email">
-              <input id="reg-phone" class="input" placeholder="Phone">
-              <input id="reg-password" class="input" placeholder="Password" type="password">
-              <div id="reg-msg" class="muted small"></div>
-              <div class="row gap">
-                <button id="btn-register" class="btn-primary">Create account</button>
-                <button id="show-login" class="btn-ghost">Back to login</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Dashboard -->
-          <div id="dashboard" class="card dashboard-card" style="display:none">
-            <div class="dash-head">
-              <div>
-                <div class="muted small">Wallet balance</div>
-                <div class="balance" id="balance">₹ 0</div>
-              </div>
-              <div class="dash-stats">
-                <div class="stat">
-                  <div class="muted small">Tx</div>
-                  <div id="stat-tx" class="stat-value">0</div>
-                </div>
-                <div class="stat">
-                  <div class="muted small">Recent</div>
-                  <div id="stat-recent" class="stat-value">—</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="chart-wrap">
-              <canvas id="balance-chart" height="100"></canvas>
-            </div>
-
-            <div class="actions small-gap">
-              <button id="quick-transfer" class="btn-ghost">UPI Transfer</button>
-              <button id="quick-bill" class="btn-ghost">Bill Pay</button>
-              <button id="quick-history" class="btn-ghost">History</button>
-              <button id="quick-profile" class="btn-ghost">Profile</button>
-            </div>
-
-            <div id="panel-body" class="panel-body">
-              <div class="muted small">Use actions to open forms (transfer, bill, profile, transactions).</div>
-            </div>
-          </div>
-
-          <!-- Activity feed (fills page) -->
-          <div class="card" id="activity-card">
-            <h4>Activity feed</h4>
-            <div id="activity-feed" class="activity-feed">
-              <!-- populated by JS with sample entries if empty -->
-            </div>
-          </div>
-
-        </div>
-
-        <aside class="col-right">
-          <div class="card">
-            <h4>Account</h4>
-            <div class="row gap" style="align-items:center">
-              <img id="profile-pic-display" class="avatar-lg" src="" alt="profile">
-              <div>
-                <div id="acct-name-right" class="muted">Not signed in</div>
-                <div id="acct-email-right" class="small muted">—</div>
-                <div style="margin-top:8px">
-                  <input id="profile-pic-input" type="file" accept="image/*" style="display:none">
-                  <button id="btn-change-pic" class="btn-ghost">Change picture</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <h4>Notifications</h4>
-            <div id="notifications" class="muted small">You have no new notifications.</div>
-          </div>
-
-          <div class="card">
-            <h4>Vendors</h4>
-            <ul id="vendor-list" class="vendor-list">
-              <!-- JS will fill with sample vendors if none -->
-            </ul>
-          </div>
-
-          <div class="card">
-            <h4>Shortcuts</h4>
-            <div class="row stacked">
-              <button onclick="showTransfer()" class="btn-primary full">Send money</button>
-              <button onclick="showBill()" class="btn-ghost full">Pay bill</button>
-              <button onclick="showTx()" class="btn-ghost full">Transactions</button>
-            </div>
-          </div>
-
-        </aside>
-      </section>
-
-      <footer class="footer muted small">Rupayana — Demo UI • Animations • Charts</footer>
-    </main>
-
-    <!-- global spinner -->
-    <div id="global-spinner" class="spinner-overlay" aria-hidden="true">
-      <div class="spinner"></div>
+    <!-- 🔵 Loading Overlay -->
+    <div id="loader">
+        <div class="spinner"></div>
     </div>
-  </div>
 
-  <!-- keep API base accessible to override if needed -->
-  <script>window.API = window.API || "https://rupayana.onrender.com";</script>
+    <!-- 🔵 Sidebar -->
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <img src="https://i.ibb.co/5G1Fp7Z/user.png" class="avatar" />
+            <h3 id="user-sidebar-name">User</h3>
+        </div>
 
-  <!-- app script -->
-  <script src="/app.js"></script>
+        <div class="sidebar-links">
+            <button onclick="navigate('dashboard-section')">🏠 Dashboard</button>
+            <button onclick="navigate('profile-section')">👤 Profile</button>
+            <button onclick="navigate('transfers-section')">💸 Money Transfer</button>
+            <button onclick="navigate('bills-section')">🧾 Bill Payments</button>
+            <button onclick="navigate('history-section')">📜 Transactions</button>
+        </div>
+
+        <button id="logout-btn" class="logout-btn">Logout</button>
+    </div>
+
+    <!-- 🔵 Top Navbar -->
+    <div class="navbar">
+        <button id="menu-btn">☰</button>
+        <h1>Rupayana</h1>
+    </div>
+
+    <!-- 🔵 Main Container -->
+    <div id="main">
+
+        <!-- =========================== -->
+        <!-- 🔐 LOGIN SECTION -->
+        <!-- =========================== -->
+        <section id="login-section" class="page active">
+            <h2>Login</h2>
+            <div class="card">
+                <input type="email" id="log-email" placeholder="Email" />
+                <input type="password" id="log-password" placeholder="Password" />
+                <button id="log-btn">Login</button>
+                <p>No account? <span class="link" onclick="show('register-section')">Register</span></p>
+            </div>
+        </section>
+
+        <!-- =========================== -->
+        <!-- 📝 REGISTER SECTION -->
+        <!-- =========================== -->
+        <section id="register-section" class="page">
+            <h2>Create Account</h2>
+            <div class="card">
+                <input type="text" id="reg-name" placeholder="Full Name" />
+                <input type="email" id="reg-email" placeholder="Email" />
+                <input type="text" id="reg-phone" placeholder="Phone Number" />
+                <input type="password" id="reg-password" placeholder="Password" />
+                <button id="reg-btn">Register</button>
+                <p>Already registered? <span class="link" onclick="show('login-section')">Login</span></p>
+            </div>
+        </section>
+
+        <!-- =========================== -->
+        <!-- 🏦 DASHBOARD SECTION -->
+        <!-- =========================== -->
+        <section id="dashboard-section" class="page">
+            <h2>Dashboard</h2>
+
+            <div class="balance-card">
+                <p>Available Balance</p>
+                <h1 id="dash-balance">₹0</h1>
+            </div>
+
+            <div class="quick-actions">
+                <button onclick="navigate('transfers-section')">💸 Transfer Money</button>
+                <button onclick="navigate('bills-section')">🧾 Pay Bills</button>
+                <button onclick="navigate('profile-section')">👤 Profile</button>
+            </div>
+        </section>
+
+        <!-- =========================== -->
+        <!-- 👤 PROFILE SECTION -->
+        <!-- =========================== -->
+        <section id="profile-section" class="page">
+            <h2>Profile</h2>
+            <div class="card">
+                <p><b>Name:</b> <span id="dash-name"></span></p>
+                <p><b>Email:</b> <span id="dash-email"></span></p>
+                <p><b>Phone:</b> <span id="dash-phone"></span></p>
+            </div>
+        </section>
+
+        <!-- =========================== -->
+        <!-- 💸 TRANSFER SECTION -->
+        <!-- =========================== -->
+        <section id="transfers-section" class="page">
+            <h2>Money Transfer</h2>
+            <div class="card">
+                <input type="text" placeholder="Receiver Email" />
+                <input type="number" placeholder="Amount" />
+                <button>Send Money</button>
+            </div>
+        </section>
+
+        <!-- =========================== -->
+        <!-- 🧾 BILL PAYMENTS -->
+        <!-- =========================== -->
+        <section id="bills-section" class="page">
+            <h2>Bill Payments</h2>
+            <div class="card">
+                <button>Electricity</button>
+                <button>Mobile Recharge</button>
+                <button>Water Bill</button>
+            </div>
+        </section>
+
+        <!-- =========================== -->
+        <!-- 📜 HISTORY SECTION -->
+        <!-- =========================== -->
+        <section id="history-section" class="page">
+            <h2>Transactions History</h2>
+            <div class="card">
+                <p>No transactions yet.</p>
+            </div>
+        </section>
+
+    </div>
+
+    <script src="app.js"></script>
 </body>
 </html>
+
+
 
 
 
